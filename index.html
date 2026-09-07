@@ -89,7 +89,7 @@ function render(rows){
       ['اسم خیابان محل قطعه زمین',r.street_name],
       ['وضعیت عضویت',statusText(r.membership_status)],
       ['میزان بدهی',money(r.debt_amount)],
-      ['UID کارت',r.uid]
+      ['وضعیت قطعه',statusText(r.plot_status)]
     ];
     const box=document.createElement('div'); box.className='plot';
     box.innerHTML='<div class="plotTitle">قطعه '+esc(r.plot_number||'—')+'</div>'+
