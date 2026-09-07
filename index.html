@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0c5c62">
+<meta http-equiv="Cache-Control" content="no-store">
+<title>استعلام مشخصات قطعه | محمودیه</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#eef4f4;--card:#fff;--ink:#17383b;--muted:#60777a;--main:#0c5c62;--line:#d7e2e3;--ok:#14794e;--bad:#a72c34}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Tahoma,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+body{min-height:100vh}.wrap{min-height:100vh;display:grid;place-items:center;padding:18px}
+.card{width:min(100%,560px);background:var(--card);border-radius:24px;padding:24px;box-shadow:0 15px 45px rgba(12,55,58,.13)}
+.head{text-align:center}.mark{width:66px;height:66px;margin:0 auto 12px;border-radius:22px;background:var(--main);display:grid;place-items:center;color:#fff;font-weight:800;font-size:18px}
+h1{font-size:24px;margin:8px 0}.sub{color:var(--muted);line-height:1.9;margin:0 0 20px}
+label{display:block;font-weight:700;margin:14px 0 7px}input{width:100%;height:52px;border:1px solid var(--line);border-radius:14px;padding:0 14px;font-size:18px;outline:0;background:#fbfdfd}
+input:focus{border-color:var(--main);box-shadow:0 0 0 3px rgba(12,92,98,.12)}button{width:100%;height:52px;border:0;border-radius:14px;background:var(--main);color:white;font-size:18px;font-weight:800;margin-top:20px;cursor:pointer}
+button:disabled{opacity:.55;cursor:not-allowed}.secondary{background:#e8efef;color:#24484b}.msg{min-height:28px;text-align:center;font-weight:700;margin-top:14px;line-height:1.8}.bad{color:var(--bad)}.ok{color:var(--ok)}.hidden{display:none}
+.resultTop{display:flex;gap:12px;align-items:center;margin-bottom:12px}.check{width:48px;height:48px;flex:0 0 48px;border-radius:50%;display:grid;place-items:center;background:#e4f5ec;color:var(--ok);font-size:28px;font-weight:900}
+.plot{margin-top:16px;border:1px solid var(--line);border-radius:18px;overflow:hidden}.plotTitle{background:#eaf2f2;padding:13px 15px;font-weight:800;font-size:18px}
+.row{display:grid;grid-template-columns:42% 58%;border-top:1px solid #edf1f1}.k,.v{padding:11px 13px;line-height:1.7;word-break:break-word}.k{font-weight:700;background:#f8fbfb}.money.positive{color:#b02931;font-weight:800}.money.negative{color:#14794e;font-weight:800}
+.foot{font-size:12px;color:#789093;text-align:center;margin-top:18px;line-height:1.8}
+@media(max-width:430px){.card{padding:19px;border-radius:20px}h1{font-size:21px}.row{grid-template-columns:1fr}.k{padding-bottom:4px}.v{padding-top:4px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<section class="card" id="loginCard">
+  <div class="head">
+    <div class="mark">محمودیه</div>
+    <h1>استعلام مشخصات قطعه</h1>
+    <p class="sub">کد ملی و شماره تلفن همراه ثبت‌شده در سامانه را وارد کنید.</p>
+  </div>
+  <form id="verifyForm" autocomplete="off">
+    <label for="national">کد ملی</label>
+    <input id="national" inputmode="numeric" maxlength="10" placeholder="۱۰ رقم" required>
+    <label for="mobile">شماره تلفن همراه</label>
+    <input id="mobile" inputmode="tel" maxlength="11" placeholder="09xxxxxxxxx" required>
+    <button id="verifyBtn" type="submit">بررسی و نمایش مشخصات</button>
+    <div id="msg" class="msg" aria-live="polite"></div>
+  </form>
+  <div class="foot">اطلاعات فقط در صورت تطبیق هم‌زمان کد ملی و شماره تلفن نمایش داده می‌شود.</div>
+</section>
+
+<section class="card hidden" id="resultCard">
+  <div class="resultTop"><div class="check">✓</div><div><h1 style="margin:0">مشخصات ثبت‌شده</h1><div id="countText" class="sub" style="margin:3px 0 0"></div></div></div>
+  <div id="results"></div>
+  <button type="button" class="secondary" id="backBtn">بازگشت</button>
+</section>
+</main>
+
+<script>
+'use strict';
+const SUPABASE_URL="https://ajlvhskckcookxqaiqpn.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_IgPmr_7I0y8K60OeRsl8aQ_1Nm9-sp0";
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+
+const $=s=>document.querySelector(s);
+const form=$('#verifyForm'), national=$('#national'), mobile=$('#mobile'), btn=$('#verifyBtn'), msg=$('#msg');
+const login=$('#loginCard'), resultCard=$('#resultCard'), results=$('#results'), countText=$('#countText');
+
+function digits(v){
+  return String(v||'')
+    .replace(/[۰-۹]/g,d=>'0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)])
+    .replace(/[٠-٩]/g,d=>'0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)])
+    .replace(/\D/g,'');
+}
+function esc(v){const d=document.createElement('div');d.textContent=v==null||v===''?'—':String(v);return d.innerHTML}
+function money(v){
+  const n=Number(v);
+  if(!Number.isFinite(n)) return esc(v);
+  return new Intl.NumberFormat('fa-IR').format(n)+' ریال';
+}
+function setMsg(t,kind=''){msg.textContent=t;msg.className='msg '+kind}
+function statusText(v){return (v==null||v==='')?'—':String(v)}
+
+function render(rows){
+  results.innerHTML='';
+  rows.forEach((r,i)=>{
+    const debt=Number(r.debt_amount);
+    const debtClass=Number.isFinite(debt)?(debt>0?'positive':debt<0?'negative':''):'';
+    const fields=[
+      ['نام و نام خانوادگی',r.full_name],
+      ['کد ملی',r.national_code],
+      ['کد پستی ملک',r.postal_code],
+      ['شماره تلفن موبایل',r.mobile],
+      ['شماره قطعه زمین',r.plot_number],
+      ['اسم خیابان محل قطعه زمین',r.street_name],
+      ['وضعیت عضویت',statusText(r.membership_status)],
+      ['میزان بدهی',money(r.debt_amount)],
+      ['UID کارت',r.uid]
+    ];
+    const box=document.createElement('div'); box.className='plot';
+    box.innerHTML='<div class="plotTitle">قطعه '+esc(r.plot_number||'—')+'</div>'+
+      fields.map((f,idx)=>'<div class="row"><div class="k">'+esc(f[0])+'</div><div class="v '+(idx===7?'money '+debtClass:'')+'">'+(idx===7?f[1]:esc(f[1]))+'</div></div>').join('');
+    results.appendChild(box);
+  });
+  countText.textContent=rows.length>1 ? rows.length+' قطعه با این مشخصات پیدا شد.' : 'تطبیق اطلاعات با موفقیت انجام شد.';
+  login.classList.add('hidden'); resultCard.classList.remove('hidden'); window.scrollTo({top:0,behavior:'smooth'});
+}
+
+form.addEventListener('submit',async e=>{
+  e.preventDefault();
+  const nc=digits(national.value), mb=digits(mobile.value);
+  if(!/^\d{10}$/.test(nc)){setMsg('کد ملی باید دقیقاً ۱۰ رقم باشد.','bad');return}
+  if(!/^09\d{9}$/.test(mb)){setMsg('شماره تلفن همراه معتبر نیست.','bad');return}
+  btn.disabled=true; setMsg('در حال بررسی با سرور…');
+  try{
+    const {data,error}=await sb.rpc('verify_plot_identity',{p_national_code:nc,p_mobile:mb});
+    if(error) throw error;
+    if(!data || data.ok!==true || !Array.isArray(data.results) || !data.results.length){
+      setMsg('کد ملی یا شماره تلفن با اطلاعات ثبت‌شده مطابقت ندارد.','bad'); return;
+    }
+    setMsg('');
+    render(data.results);
+  }catch(err){
+    console.error(err);
+    setMsg('ارتباط با سرور یا سرویس استعلام برقرار نشد.','bad');
+  }finally{btn.disabled=false}
+});
+
+$('#backBtn').addEventListener('click',()=>{
+  resultCard.classList.add('hidden');login.classList.remove('hidden');
+  form.reset();results.innerHTML='';setMsg('');window.scrollTo({top:0,behavior:'smooth'});
+});
+</script>
+</body>
+</html>
