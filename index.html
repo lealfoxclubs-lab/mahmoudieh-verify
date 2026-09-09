@@ -22,6 +22,16 @@ button:disabled{opacity:.55;cursor:not-allowed}.secondary{background:#e8efef;col
 .row{display:grid;grid-template-columns:42% 58%;border-top:1px solid #edf1f1}.k,.v{padding:11px 13px;line-height:1.7;word-break:break-word}.k{font-weight:700;background:#f8fbfb}.money.positive{color:#b02931;font-weight:800}.money.negative{color:#14794e;font-weight:800}
 .foot{font-size:12px;color:#789093;text-align:center;margin-top:18px;line-height:1.8}
 @media(max-width:430px){.card{padding:19px;border-radius:20px}h1{font-size:21px}.row{grid-template-columns:1fr}.k{padding-bottom:4px}.v{padding-top:4px}}
+
+.mapBtn{margin-top:12px;background:#176f78}
+.mapPage{position:fixed;inset:0;z-index:9999;background:var(--bg);overflow:auto;padding:18px}
+.mapCard{width:min(100%,760px);margin:0 auto;background:#fff;border-radius:22px;padding:18px;box-shadow:0 15px 45px rgba(12,55,58,.13)}
+.mapHead{text-align:center;margin-bottom:12px}.mapImageWrap{background:#edf2f2;border:1px solid var(--line);border-radius:16px;overflow:hidden;min-height:220px;display:grid;place-items:center}
+.mapImageWrap img{display:block;width:100%;height:auto;max-height:72vh;object-fit:contain;background:#fff}
+.mapActions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.mapActions button,.mapActions a{height:52px;border:0;border-radius:14px;font-size:17px;font-weight:800;display:flex;align-items:center;justify-content:center;text-decoration:none;cursor:pointer;margin-top:0}
+.mapBack{background:#e8efef;color:#24484b}.mapSave{background:var(--main);color:#fff}.mapMsg{padding:28px 12px;text-align:center;font-weight:800;color:var(--muted)}
+
 </style>
 </head>
 <body>
@@ -48,6 +58,22 @@ button:disabled{opacity:.55;cursor:not-allowed}.secondary{background:#e8efef;col
   <div id="results"></div>
   <button type="button" class="secondary" id="backBtn">بازگشت</button>
 </section>
+<section class="mapPage hidden" id="mapPage">
+  <div class="mapCard">
+    <div class="mapHead">
+      <h1 id="mapTitle" style="margin:0 0 6px">نقشه زمین</h1>
+      <div id="mapArea" class="sub" style="margin:0"></div>
+    </div>
+    <div class="mapImageWrap">
+      <div class="mapMsg" id="mapMsg">در حال دریافت نقشه…</div>
+      <img id="mapImage" class="hidden" alt="نقشه زمین">
+    </div>
+    <div class="mapActions">
+      <button type="button" class="mapBack" id="mapBackBtn">بازگشت</button>
+      <a class="mapSave hidden" id="mapSaveBtn" href="#" download>ذخیره تصویر</a>
+    </div>
+  </div>
+</section>
 </main>
 
 <script>
@@ -59,6 +85,9 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{pers
 const $=s=>document.querySelector(s);
 const form=$('#verifyForm'), national=$('#national'), mobile=$('#mobile'), btn=$('#verifyBtn'), msg=$('#msg');
 const login=$('#loginCard'), resultCard=$('#resultCard'), results=$('#results'), countText=$('#countText');
+const mapPage=$('#mapPage'), mapTitle=$('#mapTitle'), mapArea=$('#mapArea'), mapImage=$('#mapImage'), mapMsg=$('#mapMsg'), mapSaveBtn=$('#mapSaveBtn');
+const PARCEL_MAP_INDEX_URL='https://ajlvhskckcookxqaiqpn.supabase.co/storage/v1/object/public/parcel-maps/test-100-110/index/parcel_maps_test.json';
+let parcelMapIndexCache=null,lastMapObjectUrl='';
 
 function digits(v){
   return String(v||'')
@@ -74,6 +103,49 @@ function money(v){
 }
 function setMsg(t,kind=''){msg.textContent=t;msg.className='msg '+kind}
 function statusText(v){return (v==null||v==='')?'—':String(v)}
+
+
+async function loadParcelMapIndex(){
+  if(parcelMapIndexCache) return parcelMapIndexCache;
+  const r=await fetch(PARCEL_MAP_INDEX_URL,{cache:'no-store'});
+  if(!r.ok) throw new Error('parcel map index HTTP '+r.status);
+  const data=await r.json();
+  if(!Array.isArray(data)) throw new Error('parcel map index invalid');
+  parcelMapIndexCache=data;
+  return data;
+}
+function resetMapView(){
+  if(lastMapObjectUrl){URL.revokeObjectURL(lastMapObjectUrl);lastMapObjectUrl=''}
+  mapImage.removeAttribute('src');mapImage.classList.add('hidden');
+  mapSaveBtn.classList.add('hidden');mapSaveBtn.removeAttribute('href');
+  mapMsg.textContent='در حال دریافت نقشه…';mapMsg.classList.remove('hidden');mapArea.textContent='';
+}
+async function openParcelMap(plotNumber){
+  const pn=digits(plotNumber);
+  if(!pn){alert('شماره قطعه برای این رکورد موجود نیست.');return}
+  resetMapView();mapTitle.textContent='نقشه زمین — قطعه '+pn;
+  mapPage.classList.remove('hidden');document.body.style.overflow='hidden';
+  try{
+    const idx=await loadParcelMapIndex();
+    const item=idx.find(x=>digits(x.parcel_no)===pn);
+    if(!item || !item.image_url){mapMsg.textContent='نقشه این قطعه ثبت نشده است.';return}
+    if(item.area_m2!=null && item.area_m2!==''){
+      const a=Number(item.area_m2);
+      mapArea.textContent='مساحت: '+(Number.isFinite(a)?new Intl.NumberFormat('fa-IR',{maximumFractionDigits:2}).format(a):item.area_m2)+' مترمربع';
+    }
+    mapImage.onload=()=>{mapMsg.classList.add('hidden');mapImage.classList.remove('hidden')};
+    mapImage.onerror=()=>{mapImage.classList.add('hidden');mapMsg.classList.remove('hidden');mapMsg.textContent='تصویر نقشه قابل دریافت نیست.'};
+    mapImage.src=item.image_url;
+    mapSaveBtn.href=item.image_url;mapSaveBtn.download=pn+'.jpg';mapSaveBtn.classList.remove('hidden');
+    try{
+      const rr=await fetch(item.image_url,{cache:'no-store'});
+      if(rr.ok){lastMapObjectUrl=URL.createObjectURL(await rr.blob());mapSaveBtn.href=lastMapObjectUrl}
+    }catch(_){}
+  }catch(err){console.error(err);mapMsg.textContent='خطا در دریافت فهرست نقشه‌های زمین.'}
+}
+function closeParcelMap(){
+  mapPage.classList.add('hidden');document.body.style.overflow='';resetMapView();
+}
 
 function render(rows){
   results.innerHTML='';
@@ -93,7 +165,9 @@ function render(rows){
     ];
     const box=document.createElement('div'); box.className='plot';
     box.innerHTML='<div class="plotTitle">قطعه '+esc(r.plot_number||'—')+'</div>'+
-      fields.map((f,idx)=>'<div class="row"><div class="k">'+esc(f[0])+'</div><div class="v '+(idx===7?'money '+debtClass:'')+'">'+(idx===7?f[1]:esc(f[1]))+'</div></div>').join('');
+      fields.map((f,idx)=>'<div class="row"><div class="k">'+esc(f[0])+'</div><div class="v '+(idx===7?'money '+debtClass:'')+'">'+(idx===7?f[1]:esc(f[1]))+'</div></div>').join('')+
+      '<div style="padding:0 13px 13px"><button type="button" class="mapBtn">نقشه زمین</button></div>';
+    box.querySelector('.mapBtn').addEventListener('click',()=>openParcelMap(r.plot_number));
     results.appendChild(box);
   });
   countText.textContent=rows.length>1 ? rows.length+' قطعه با این مشخصات پیدا شد.' : 'تطبیق اطلاعات با موفقیت انجام شد.';
@@ -119,6 +193,8 @@ form.addEventListener('submit',async e=>{
     setMsg('ارتباط با سرور یا سرویس استعلام برقرار نشد.','bad');
   }finally{btn.disabled=false}
 });
+
+$('#mapBackBtn').addEventListener('click',closeParcelMap);
 
 $('#backBtn').addEventListener('click',()=>{
   resultCard.classList.add('hidden');login.classList.remove('hidden');
