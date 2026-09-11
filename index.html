@@ -1,247 +1,64 @@
 <!doctype html>
-<html lang="fa" dir="rtl">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0c5c62">
-<meta http-equiv="Cache-Control" content="no-store">
-<title>استعلام مشخصات قطعه | محمودیه</title>
-<!-- PARCEL_MAP_PRODUCTION_V41_36_FINAL -->
+<html lang="fa" dir="rtl"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>استعلام مشخصات قطعه محمودیه</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root{--bg:#eef4f4;--card:#fff;--ink:#17383b;--muted:#60777a;--main:#0c5c62;--line:#d7e2e3;--ok:#14794e;--bad:#a72c34}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Tahoma,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-body{min-height:100vh}.wrap{min-height:100vh;display:grid;place-items:center;padding:18px}
-.card{width:min(100%,560px);background:var(--card);border-radius:24px;padding:24px;box-shadow:0 15px 45px rgba(12,55,58,.13)}
+body{min-height:100vh}.wrap{min-height:100vh;display:grid;place-items:center;padding:18px}.card{width:min(100%,560px);background:#fff;border-radius:24px;padding:24px;box-shadow:0 15px 45px rgba(12,55,58,.13)}
 .head{text-align:center}.mark{width:66px;height:66px;margin:0 auto 12px;border-radius:22px;background:var(--main);display:grid;place-items:center;color:#fff;font-weight:800;font-size:18px}
-h1{font-size:24px;margin:8px 0}.sub{color:var(--muted);line-height:1.9;margin:0 0 20px}
-label{display:block;font-weight:700;margin:14px 0 7px}input{width:100%;height:52px;border:1px solid var(--line);border-radius:14px;padding:0 14px;font-size:18px;outline:0;background:#fbfdfd}
+h1{font-size:24px;margin:8px 0}.sub{color:var(--muted);line-height:1.9;margin:0 0 20px}label{display:block;font-weight:700;margin:14px 0 7px}
+input{width:100%;height:52px;border:1px solid var(--line);border-radius:14px;padding:0 14px;font-size:18px;outline:0;background:#fbfdfd}
 input:focus{border-color:var(--main);box-shadow:0 0 0 3px rgba(12,92,98,.12)}button{width:100%;height:52px;border:0;border-radius:14px;background:var(--main);color:white;font-size:18px;font-weight:800;margin-top:20px;cursor:pointer}
-button:disabled{opacity:.55;cursor:not-allowed}.secondary{background:#e8efef;color:#24484b}.msg{min-height:28px;text-align:center;font-weight:700;margin-top:14px;line-height:1.8}.bad{color:var(--bad)}.ok{color:var(--ok)}.hidden{display:none}
-.resultTop{display:flex;gap:12px;align-items:center;margin-bottom:12px}.check{width:48px;height:48px;flex:0 0 48px;border-radius:50%;display:grid;place-items:center;background:#e4f5ec;color:var(--ok);font-size:28px;font-weight:900}
+button:disabled{opacity:.55}.secondary{background:#e8efef;color:#24484b}.msg{min-height:28px;text-align:center;font-weight:700;margin-top:14px;line-height:1.8}.bad{color:var(--bad)}.ok{color:var(--ok)}.hidden{display:none}
+.resultTop{display:flex;gap:12px;align-items:center;margin-bottom:12px}.check{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:#e4f5ec;color:var(--ok);font-size:28px;font-weight:900}
 .plot{margin-top:16px;border:1px solid var(--line);border-radius:18px;overflow:hidden}.plotTitle{background:#eaf2f2;padding:13px 15px;font-weight:800;font-size:18px}
 .row{display:grid;grid-template-columns:42% 58%;border-top:1px solid #edf1f1}.k,.v{padding:11px 13px;line-height:1.7;word-break:break-word}.k{font-weight:700;background:#f8fbfb}.money.positive{color:#b02931;font-weight:800}.money.negative{color:#14794e;font-weight:800}
-.foot{font-size:12px;color:#789093;text-align:center;margin-top:18px;line-height:1.8}
-@media(max-width:430px){.card{padding:19px;border-radius:20px}h1{font-size:21px}.row{grid-template-columns:1fr}.k{padding-bottom:4px}.v{padding-top:4px}}
-
-.mapBtn{margin-top:12px;background:#176f78}
-.mapPage{position:fixed;inset:0;z-index:9999;background:var(--bg);overflow:auto;padding:18px}
-.mapCard{width:min(100%,760px);margin:0 auto;background:#fff;border-radius:22px;padding:18px;box-shadow:0 15px 45px rgba(12,55,58,.13)}
-.mapHead{text-align:center;margin-bottom:12px}
-.mapImageWrap{background:#edf2f2;border:1px solid var(--line);border-radius:16px;overflow:hidden;min-height:220px;display:grid;place-items:center}
-.mapImageWrap img{display:block;width:100%;height:auto;max-height:72vh;object-fit:contain;background:#fff}
-.mapActions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
-.mapActions button,.mapActions a{height:52px;border:0;border-radius:14px;font-size:17px;font-weight:800;display:flex;align-items:center;justify-content:center;text-decoration:none;cursor:pointer}
-.mapBack{background:#e8efef;color:#24484b}
-.mapSave{background:var(--main);color:#fff}
-.mapMsg{padding:28px 12px;text-align:center;font-weight:800;color:var(--muted)}
-
-</style>
-</head>
-<body>
-<main class="wrap">
-<section class="card" id="loginCard">
-  <div class="head">
-    <div class="mark">محمودیه</div>
-    <h1>استعلام مشخصات قطعه</h1>
-    <p class="sub">کد ملی و شماره تلفن همراه ثبت‌شده در سامانه را وارد کنید.</p>
-  </div>
-  <form id="verifyForm" autocomplete="off">
-    <label for="national">کد ملی</label>
-    <input id="national" inputmode="numeric" maxlength="10" placeholder="۱۰ رقم" required>
-    <label for="mobile">شماره تلفن همراه</label>
-    <input id="mobile" inputmode="tel" maxlength="11" placeholder="09xxxxxxxxx" required>
-    <button id="verifyBtn" type="submit">بررسی و نمایش مشخصات</button>
-    <div id="msg" class="msg" aria-live="polite"></div>
-  </form>
-  <div class="foot">اطلاعات فقط در صورت تطبیق هم‌زمان کد ملی و شماره تلفن نمایش داده می‌شود.</div>
-</section>
-
-<section class="card hidden" id="resultCard">
-  <div class="resultTop"><div class="check">✓</div><div><h1 style="margin:0">مشخصات ثبت‌شده</h1><div id="countText" class="sub" style="margin:3px 0 0"></div></div></div>
-  <div id="results"></div>
-  <button type="button" class="secondary" id="backBtn">بازگشت</button>
-</section>
-
-<section class="mapPage hidden" id="mapPage" aria-live="polite">
-  <div class="mapCard">
-    <div class="mapHead">
-      <h1 id="mapTitle" style="margin:0 0 6px">نقشه زمین</h1>
-      <div id="mapArea" class="sub" style="margin:0"></div>
-    </div>
-    <div class="mapImageWrap" id="mapImageWrap">
-      <div class="mapMsg" id="mapMsg">در حال دریافت نقشه…</div>
-      <img id="mapImage" class="hidden" alt="نقشه زمین">
-    </div>
-    <div class="mapActions">
-      <button type="button" class="mapBack" id="mapBackBtn">بازگشت</button>
-      <a class="mapSave hidden" id="mapSaveBtn" href="#" download>ذخیره تصویر</a>
-    </div>
-  </div>
-</section>
-</main>
-
+.foot{font-size:12px;color:#789093;text-align:center;margin-top:18px;line-height:1.8}.mapBtn{margin-top:12px;background:#176f78}
+.mapPage{position:fixed;inset:0;z-index:9999;background:var(--bg);overflow:auto;padding:18px}.mapCard{width:min(100%,820px);margin:0 auto;background:#fff;border-radius:22px;padding:18px;box-shadow:0 15px 45px rgba(12,55,58,.13)}
+.mapHead{text-align:center;margin-bottom:12px}.mapImageWrap{background:#edf2f2;border:1px solid var(--line);border-radius:16px;overflow:hidden;min-height:220px;display:grid;place-items:center}.mapImageWrap img{display:block;width:100%;height:auto;max-height:72vh;object-fit:contain;background:#fff}
+.mapActions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}.mapActions button,.mapActions a{min-height:52px;border:0;border-radius:14px;font-size:16px;font-weight:800;display:flex;align-items:center;justify-content:center;text-decoration:none;cursor:pointer;margin:0}
+.mapBack{background:#e8efef;color:#24484b}.mapSave,.googleBtn{background:var(--main);color:#fff}.mapMsg{padding:28px 12px;text-align:center;font-weight:800;color:var(--muted)}
+.utmBox{margin-top:16px;border:1px solid var(--line);border-radius:16px;overflow:auto}.utmBox table{width:100%;border-collapse:collapse;direction:ltr}.utmBox th,.utmBox td{padding:9px;border-bottom:1px solid #e7eeee;text-align:center;white-space:nowrap}.utmBox th{background:#eef5f5}
+#leafletMap{height:380px;border-radius:16px;margin-top:16px;border:1px solid var(--line);overflow:hidden;direction:ltr}
+@media(max-width:430px){.card{padding:19px}.row{grid-template-columns:1fr}.k{padding-bottom:4px}.v{padding-top:4px}.mapActions{grid-template-columns:1fr}#leafletMap{height:320px}}
+</style></head><body><main class="wrap">
+<section class="card" id="loginCard"><div class="head"><div class="mark">محمودیه</div><h1>استعلام مشخصات قطعه</h1>
+<p class="sub">کد ملی، شماره تلفن همراه و کد دسترسی شخصی ۶ رقمی را وارد کنید.</p></div>
+<form id="verifyForm" autocomplete="off">
+<label for="national">کد ملی</label><input id="national" inputmode="numeric" maxlength="10" placeholder="۱۰ رقم" required>
+<label for="mobile">شماره تلفن همراه</label><input id="mobile" inputmode="tel" maxlength="11" placeholder="09xxxxxxxxx" required>
+<label for="pin">کد دسترسی ۶ رقمی</label><input id="pin" type="password" inputmode="numeric" maxlength="6" placeholder="••••••" required>
+<button id="verifyBtn" type="submit">بررسی و نمایش مشخصات</button><div id="msg" class="msg" aria-live="polite"></div></form>
+<div class="foot">پس از ۵ تلاش ناموفق، ورود به مدت ۱۵ دقیقه قفل می‌شود.</div></section>
+<section class="card hidden" id="resultCard"><div class="resultTop"><div class="check">✓</div><div><h1 style="margin:0">مشخصات ثبت‌شده</h1><div id="countText" class="sub" style="margin:3px 0 0"></div></div></div><div id="results"></div><button type="button" class="secondary" id="backBtn">بازگشت</button></section>
+<section class="mapPage hidden" id="mapPage"><div class="mapCard">
+<div class="mapHead"><h1 id="mapTitle" style="margin:0 0 6px">نمایش نقشه زمین و فایل UTM</h1><div id="mapArea" class="sub" style="margin:0"></div></div>
+<div class="mapImageWrap"><div class="mapMsg" id="mapMsg">در حال دریافت اطلاعات…</div><img id="mapImage" class="hidden" alt="فایل UTM"></div>
+<div class="utmBox hidden" id="utmBox"><table><thead><tr><th>Point</th><th>Easting</th><th>Northing</th><th>Lat</th><th>Lng</th></tr></thead><tbody id="utmBody"></tbody></table></div>
+<div id="leafletMap" class="hidden"></div><div class="mapActions"><button type="button" class="mapBack" id="mapBackBtn">بازگشت</button><a class="mapSave hidden" id="mapSaveBtn" href="#" download>ذخیره تصویر</a><a class="googleBtn hidden" id="googleBtn" target="_blank" rel="noopener">باز کردن موقعیت در Google Maps</a></div>
+</div></section></main>
 <script>
 'use strict';
-const SUPABASE_URL="https://ajlvhskckcookxqaiqpn.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY="sb_publishable_IgPmr_7I0y8K60OeRsl8aQ_1Nm9-sp0";
+const SUPABASE_URL="https://ajlvhskckcookxqaiqpn.supabase.co",SUPABASE_PUBLISHABLE_KEY="sb_publishable_IgPmr_7I0y8K60OeRsl8aQ_1Nm9-sp0";
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
-
-const $=s=>document.querySelector(s);
-const form=$('#verifyForm'), national=$('#national'), mobile=$('#mobile'), btn=$('#verifyBtn'), msg=$('#msg');
-const login=$('#loginCard'), resultCard=$('#resultCard'), results=$('#results'), countText=$('#countText');
-const mapPage=$('#mapPage'), mapTitle=$('#mapTitle'), mapArea=$('#mapArea'), mapImage=$('#mapImage'), mapMsg=$('#mapMsg'), mapSaveBtn=$('#mapSaveBtn');
-
-function digits(v){
-  return String(v||'')
-    .replace(/[۰-۹]/g,d=>'0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)])
-    .replace(/[٠-٩]/g,d=>'0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)])
-    .replace(/\D/g,'');
-}
+const $=s=>document.querySelector(s),form=$('#verifyForm'),national=$('#national'),mobile=$('#mobile'),pin=$('#pin'),btn=$('#verifyBtn'),msg=$('#msg');
+const login=$('#loginCard'),resultCard=$('#resultCard'),results=$('#results'),countText=$('#countText');
+const mapPage=$('#mapPage'),mapTitle=$('#mapTitle'),mapArea=$('#mapArea'),mapImage=$('#mapImage'),mapMsg=$('#mapMsg'),mapSaveBtn=$('#mapSaveBtn'),googleBtn=$('#googleBtn'),utmBox=$('#utmBox'),utmBody=$('#utmBody');
+let leafletMap=null,leafletLayer=null,lastMapObjectUrl='';
+function digits(v){return String(v||'').replace(/[۰-۹]/g,d=>'0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)]).replace(/[٠-٩]/g,d=>'0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]).replace(/\D/g,'')}
 function esc(v){const d=document.createElement('div');d.textContent=v==null||v===''?'—':String(v);return d.innerHTML}
-function money(v){
-  const n=Number(v);
-  if(!Number.isFinite(n)) return esc(v);
-  return new Intl.NumberFormat('fa-IR').format(n)+' ریال';
-}
-function setMsg(t,kind=''){msg.textContent=t;msg.className='msg '+kind}
-function statusText(v){return (v==null||v==='')?'—':String(v)}
-
-
-let lastMapObjectUrl='';
-
-function resetMapView(){
-  if(lastMapObjectUrl){URL.revokeObjectURL(lastMapObjectUrl);lastMapObjectUrl=''}
-  mapImage.removeAttribute('src');
-  mapImage.classList.add('hidden');
-  mapSaveBtn.classList.add('hidden');
-  mapSaveBtn.removeAttribute('href');
-  mapMsg.textContent='در حال دریافت نقشه…';
-  mapMsg.classList.remove('hidden');
-  mapArea.textContent='';
-}
-
-async function openParcelMap(plotNumber){
-  const pn=String(plotNumber==null?'':plotNumber).trim();
-  if(!pn){alert('شماره قطعه برای این رکورد موجود نیست.');return}
-  resetMapView();
-  mapTitle.textContent='نقشه زمین — قطعه '+pn;
-  mapPage.classList.remove('hidden');
-  document.body.style.overflow='hidden';
-
-  try{
-    const indexUrl=SUPABASE_URL+'/storage/v1/object/public/parcel-maps/production/index/parcel_maps.json?v='+Date.now();
-    const ir=await fetch(indexUrl,{cache:'no-store'});
-    if(!ir.ok){
-      mapMsg.textContent='فهرست نقشه‌ها هنوز روی سرور آماده نشده است.';
-      return;
-    }
-    const indexData=await ir.json();
-    const items=Array.isArray(indexData?.items)?indexData.items:[];
-    const data=items.find(x=>String(x?.plot_number??'').trim()===pn);
-
-    if(!data){
-      mapMsg.textContent='نقشه این قطعه ثبت نشده است.';
-      return;
-    }
-
-    if(data.area!=null && data.area!==''){
-      const a=Number(data.area);
-      mapArea.textContent='مساحت: '+(Number.isFinite(a)?new Intl.NumberFormat('fa-IR',{maximumFractionDigits:3}).format(a):data.area)+' مترمربع';
-    }
-
-    const imageUrl=data.image_url ||
-      (SUPABASE_URL+'/storage/v1/object/public/parcel-maps/production/images/'+encodeURIComponent(pn)+'.jpg');
-
-    mapImage.onload=()=>{
-      mapMsg.classList.add('hidden');
-      mapImage.classList.remove('hidden');
-    };
-    mapImage.onerror=()=>{
-      mapImage.classList.add('hidden');
-      mapMsg.classList.remove('hidden');
-      mapMsg.textContent='تصویر نقشه قابل دریافت نیست.';
-    };
-    mapImage.src=imageUrl;
-
-    mapSaveBtn.textContent='ذخیره تصویر';
-    mapSaveBtn.download=pn+'.jpg';
-    mapSaveBtn.href=imageUrl;
-    mapSaveBtn.classList.remove('hidden');
-
-    try{
-      const r=await fetch(imageUrl,{cache:'no-store'});
-      if(r.ok){
-        const blob=await r.blob();
-        lastMapObjectUrl=URL.createObjectURL(blob);
-        mapSaveBtn.href=lastMapObjectUrl;
-      }
-    }catch(_){}
-  }catch(err){
-    console.error(err);
-    mapMsg.textContent='خطا در دریافت نقشه زمین.';
-  }
-}
-
-function closeParcelMap(){
-  mapPage.classList.add('hidden');
-  document.body.style.overflow='';
-  resetMapView();
-}
-
-function render(rows){
-  results.innerHTML='';
-  rows.forEach((r,i)=>{
-    const debt=Number(r.debt_amount);
-    const debtClass=Number.isFinite(debt)?(debt>0?'positive':debt<0?'negative':''):'';
-    const fields=[
-      ['نام و نام خانوادگی',r.full_name],
-      ['کد ملی',r.national_code],
-      ['کد پستی ملک',r.postal_code],
-      ['شماره تلفن موبایل',r.mobile],
-      ['شماره قطعه زمین',r.plot_number],
-      ['اسم خیابان محل قطعه زمین',r.street_name],
-      ['وضعیت عضویت',statusText(r.membership_status)],
-      ['میزان بدهی',money(r.debt_amount)],
-      ['وضعیت قطعه',statusText(r.plot_status)]
-    ];
-    const box=document.createElement('div'); box.className='plot';
-    box.innerHTML='<div class="plotTitle">قطعه '+esc(r.plot_number||'—')+'</div>'+
-      fields.map((f,idx)=>'<div class="row"><div class="k">'+esc(f[0])+'</div><div class="v '+(idx===7?'money '+debtClass:'')+'">'+(idx===7?f[1]:esc(f[1]))+'</div></div>').join('')+
-      '<div style="padding:0 13px 13px"><button type="button" class="mapBtn">نقشه زمین</button></div>';
-    box.querySelector('.mapBtn').addEventListener('click',()=>openParcelMap(r.plot_number));
-    results.appendChild(box);
-  });
-  countText.textContent=rows.length>1 ? rows.length+' قطعه با این مشخصات پیدا شد.' : 'تطبیق اطلاعات با موفقیت انجام شد.';
-  login.classList.add('hidden'); resultCard.classList.remove('hidden'); window.scrollTo({top:0,behavior:'smooth'});
-}
-
-form.addEventListener('submit',async e=>{
-  e.preventDefault();
-  const nc=digits(national.value), mb=digits(mobile.value);
-  if(!/^\d{10}$/.test(nc)){setMsg('کد ملی باید دقیقاً ۱۰ رقم باشد.','bad');return}
-  if(!/^09\d{9}$/.test(mb)){setMsg('شماره تلفن همراه معتبر نیست.','bad');return}
-  btn.disabled=true; setMsg('در حال بررسی با سرور…');
-  try{
-    const {data,error}=await sb.rpc('verify_plot_identity',{p_national_code:nc,p_mobile:mb});
-    if(error) throw error;
-    if(!data || data.ok!==true || !Array.isArray(data.results) || !data.results.length){
-      setMsg('کد ملی یا شماره تلفن با اطلاعات ثبت‌شده مطابقت ندارد.','bad'); return;
-    }
-    setMsg('');
-    render(data.results);
-  }catch(err){
-    console.error(err);
-    setMsg('ارتباط با سرور یا سرویس استعلام برقرار نشد.','bad');
-  }finally{btn.disabled=false}
-});
-
-$('#mapBackBtn').addEventListener('click',closeParcelMap);
-
-$('#backBtn').addEventListener('click',()=>{
-  resultCard.classList.add('hidden');login.classList.remove('hidden');
-  form.reset();results.innerHTML='';setMsg('');window.scrollTo({top:0,behavior:'smooth'});
-});
-</script>
-</body>
-</html>
+function money(v){const n=Number(v);return Number.isFinite(n)?new Intl.NumberFormat('fa-IR').format(n)+' ریال':esc(v)}
+function setMsg(t,k=''){msg.textContent=t;msg.className='msg '+k}
+function arr(v){if(Array.isArray(v))return v;try{return JSON.parse(v||'[]')}catch{return[]}}
+function resetMapView(){if(lastMapObjectUrl){URL.revokeObjectURL(lastMapObjectUrl);lastMapObjectUrl=''}mapImage.removeAttribute('src');mapImage.classList.add('hidden');mapSaveBtn.classList.add('hidden');googleBtn.classList.add('hidden');mapMsg.textContent='در حال دریافت اطلاعات…';mapMsg.classList.remove('hidden');mapArea.textContent='';utmBox.classList.add('hidden');utmBody.innerHTML='';$('#leafletMap').classList.add('hidden');if(leafletMap){leafletMap.remove();leafletMap=null;leafletLayer=null}}
+function showPolygon(points){if(!window.L||points.length<3)return;const ll=points.map(p=>[Number(p.lat),Number(p.lng)]).filter(x=>Number.isFinite(x[0])&&Number.isFinite(x[1]));if(ll.length<3)return;$('#leafletMap').classList.remove('hidden');leafletMap=L.map('leafletMap');L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20,attribution:'© OpenStreetMap'}).addTo(leafletMap);leafletLayer=L.polygon(ll,{weight:3,fillOpacity:.18}).addTo(leafletMap);ll.forEach((p,i)=>L.marker(p).bindTooltip('P'+(i+1),{permanent:true,direction:'top'}).addTo(leafletMap));leafletMap.fitBounds(leafletLayer.getBounds(),{padding:[24,24]});const c=leafletLayer.getBounds().getCenter();googleBtn.href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(c.lat+','+c.lng);googleBtn.classList.remove('hidden');setTimeout(()=>leafletMap.invalidateSize(),80)}
+function openParcelMap(row){const pn=String(row?.plot_number||'').trim();if(!pn)return;resetMapView();mapTitle.textContent='نمایش نقشه زمین و فایل UTM — قطعه '+pn;mapPage.classList.remove('hidden');document.body.style.overflow='hidden';const area=row.map_area??row.area;mapArea.textContent=(area!=null?'مساحت: '+area+' مترمربع — ':'')+'UTM Zone '+(row.map_zone||row.zone||39)+'N';const image=row.image_url||'';if(image){mapImage.onload=()=>{mapMsg.classList.add('hidden');mapImage.classList.remove('hidden')};mapImage.onerror=()=>{mapMsg.textContent='تصویر نقشه قابل دریافت نیست.'};mapImage.src=image;mapSaveBtn.href=image;mapSaveBtn.download=pn+'.jpg';mapSaveBtn.classList.remove('hidden');fetch(image,{cache:'no-store'}).then(r=>r.ok?r.blob():null).then(b=>{if(b){lastMapObjectUrl=URL.createObjectURL(b);mapSaveBtn.href=lastMapObjectUrl}}).catch(()=>{})}else mapMsg.textContent='فایل UTM این قطعه هنوز ثبت نشده است.';const u=arr(row.utm_points),g=arr(row.wgs84_points);if(u.length){utmBody.innerHTML=u.map((p,i)=>'<tr><td>P'+(i+1)+'</td><td>'+esc(p.easting)+'</td><td>'+esc(p.northing)+'</td><td>'+esc(g[i]?.lat)+'</td><td>'+esc(g[i]?.lng)+'</td></tr>').join('');utmBox.classList.remove('hidden')}showPolygon(g)}
+function closeParcelMap(){mapPage.classList.add('hidden');document.body.style.overflow='';resetMapView()}
+function render(rows){results.innerHTML='';rows.forEach(r=>{const debt=Number(r.debt_amount),dc=Number.isFinite(debt)?(debt>0?'positive':debt<0?'negative':''):'';const fields=[['نام و نام خانوادگی',r.full_name],['کد ملی',r.national_code],['کد پستی ملک',r.postal_code],['شماره تلفن موبایل',r.mobile],['شماره قطعه زمین',r.plot_number],['اسم خیابان محل قطعه زمین',r.street_name],['وضعیت عضویت',r.membership_status],['عضویت در تعاونی',r.cooperative_membership_status||''],['میزان بدهی',money(r.debt_amount)],['وضعیت قطعه',r.plot_status]];const box=document.createElement('div');box.className='plot';box.innerHTML='<div class="plotTitle">قطعه '+esc(r.plot_number||'—')+'</div>'+fields.map((f,i)=>'<div class="row"><div class="k">'+esc(f[0])+'</div><div class="v '+(i===8?'money '+dc:'')+'">'+(i===8?f[1]:esc(f[1]))+'</div></div>').join('')+'<div style="padding:0 13px 13px"><button type="button" class="mapBtn">نمایش نقشه زمین و فایل UTM</button></div>';box.querySelector('.mapBtn').onclick=()=>openParcelMap(r);results.appendChild(box)});countText.textContent=rows.length>1?rows.length+' قطعه با این مشخصات پیدا شد.':'تطبیق اطلاعات با موفقیت انجام شد.';login.classList.add('hidden');resultCard.classList.remove('hidden');window.scrollTo({top:0,behavior:'smooth'});const wanted=new URLSearchParams(location.search).get('plot');if(wanted){const r=rows.find(x=>String(x.plot_number)===String(wanted));if(r)setTimeout(()=>openParcelMap(r),100)}}
+form.addEventListener('submit',async e=>{e.preventDefault();const nc=digits(national.value),mb=digits(mobile.value),pn=digits(pin.value);if(!/^\d{10}$/.test(nc)){setMsg('کد ملی باید دقیقاً ۱۰ رقم باشد.','bad');return}if(!/^09\d{9}$/.test(mb)){setMsg('شماره تلفن همراه معتبر نیست.','bad');return}if(!/^\d{6}$/.test(pn)){setMsg('کد دسترسی باید دقیقاً ۶ رقم باشد.','bad');return}btn.disabled=true;setMsg('در حال بررسی امن اطلاعات…');try{const {data,error}=await sb.rpc('verify_plot_identity_pin',{p_national_code:nc,p_mobile:mb,p_pin:pn});if(error)throw error;if(!data?.ok){if(data?.error==='LOCKED')setMsg('به دلیل تلاش‌های ناموفق، ورود ۱۵ دقیقه قفل شده است.','bad');else if(data?.error==='PIN_NOT_SET')setMsg('برای این مالک هنوز کد دسترسی QR تعریف نشده است.','bad');else setMsg('اطلاعات ورود یا کد ۶ رقمی صحیح نیست.','bad');return}render(Array.isArray(data.results)?data.results:[])}catch(err){console.error(err);setMsg('ارتباط با سرور برقرار نشد.','bad')}finally{btn.disabled=false}});
+$('#mapBackBtn').onclick=closeParcelMap;$('#backBtn').onclick=()=>{resultCard.classList.add('hidden');login.classList.remove('hidden');form.reset();results.innerHTML='';setMsg('');window.scrollTo({top:0,behavior:'smooth'})};
+</script></body></html>
