@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#0c5c62">
 <meta http-equiv="Cache-Control" content="no-store">
 <title>استعلام مشخصات قطعه | محمودیه</title>
+<!-- PARCEL_MAP_PRODUCTION_V41_36_FINAL -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#eef4f4;--card:#fff;--ink:#17383b;--muted:#60777a;--main:#0c5c62;--line:#d7e2e3;--ok:#14794e;--bad:#a72c34}
@@ -26,11 +27,14 @@ button:disabled{opacity:.55;cursor:not-allowed}.secondary{background:#e8efef;col
 .mapBtn{margin-top:12px;background:#176f78}
 .mapPage{position:fixed;inset:0;z-index:9999;background:var(--bg);overflow:auto;padding:18px}
 .mapCard{width:min(100%,760px);margin:0 auto;background:#fff;border-radius:22px;padding:18px;box-shadow:0 15px 45px rgba(12,55,58,.13)}
-.mapHead{text-align:center;margin-bottom:12px}.mapImageWrap{background:#edf2f2;border:1px solid var(--line);border-radius:16px;overflow:hidden;min-height:220px;display:grid;place-items:center}
+.mapHead{text-align:center;margin-bottom:12px}
+.mapImageWrap{background:#edf2f2;border:1px solid var(--line);border-radius:16px;overflow:hidden;min-height:220px;display:grid;place-items:center}
 .mapImageWrap img{display:block;width:100%;height:auto;max-height:72vh;object-fit:contain;background:#fff}
 .mapActions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
-.mapActions button,.mapActions a{height:52px;border:0;border-radius:14px;font-size:17px;font-weight:800;display:flex;align-items:center;justify-content:center;text-decoration:none;cursor:pointer;margin-top:0}
-.mapBack{background:#e8efef;color:#24484b}.mapSave{background:var(--main);color:#fff}.mapMsg{padding:28px 12px;text-align:center;font-weight:800;color:var(--muted)}
+.mapActions button,.mapActions a{height:52px;border:0;border-radius:14px;font-size:17px;font-weight:800;display:flex;align-items:center;justify-content:center;text-decoration:none;cursor:pointer}
+.mapBack{background:#e8efef;color:#24484b}
+.mapSave{background:var(--main);color:#fff}
+.mapMsg{padding:28px 12px;text-align:center;font-weight:800;color:var(--muted)}
 
 </style>
 </head>
@@ -58,13 +62,14 @@ button:disabled{opacity:.55;cursor:not-allowed}.secondary{background:#e8efef;col
   <div id="results"></div>
   <button type="button" class="secondary" id="backBtn">بازگشت</button>
 </section>
-<section class="mapPage hidden" id="mapPage">
+
+<section class="mapPage hidden" id="mapPage" aria-live="polite">
   <div class="mapCard">
     <div class="mapHead">
       <h1 id="mapTitle" style="margin:0 0 6px">نقشه زمین</h1>
       <div id="mapArea" class="sub" style="margin:0"></div>
     </div>
-    <div class="mapImageWrap">
+    <div class="mapImageWrap" id="mapImageWrap">
       <div class="mapMsg" id="mapMsg">در حال دریافت نقشه…</div>
       <img id="mapImage" class="hidden" alt="نقشه زمین">
     </div>
@@ -86,8 +91,6 @@ const $=s=>document.querySelector(s);
 const form=$('#verifyForm'), national=$('#national'), mobile=$('#mobile'), btn=$('#verifyBtn'), msg=$('#msg');
 const login=$('#loginCard'), resultCard=$('#resultCard'), results=$('#results'), countText=$('#countText');
 const mapPage=$('#mapPage'), mapTitle=$('#mapTitle'), mapArea=$('#mapArea'), mapImage=$('#mapImage'), mapMsg=$('#mapMsg'), mapSaveBtn=$('#mapSaveBtn');
-const PARCEL_MAP_INDEX_URL='https://ajlvhskckcookxqaiqpn.supabase.co/storage/v1/object/public/parcel-maps/test-100-110/index/parcel_maps_test.json';
-let parcelMapIndexCache=null,lastMapObjectUrl='';
 
 function digits(v){
   return String(v||'')
@@ -105,46 +108,85 @@ function setMsg(t,kind=''){msg.textContent=t;msg.className='msg '+kind}
 function statusText(v){return (v==null||v==='')?'—':String(v)}
 
 
-async function loadParcelMapIndex(){
-  if(parcelMapIndexCache) return parcelMapIndexCache;
-  const r=await fetch(PARCEL_MAP_INDEX_URL,{cache:'no-store'});
-  if(!r.ok) throw new Error('parcel map index HTTP '+r.status);
-  const data=await r.json();
-  if(!Array.isArray(data)) throw new Error('parcel map index invalid');
-  parcelMapIndexCache=data;
-  return data;
-}
+let lastMapObjectUrl='';
+
 function resetMapView(){
   if(lastMapObjectUrl){URL.revokeObjectURL(lastMapObjectUrl);lastMapObjectUrl=''}
-  mapImage.removeAttribute('src');mapImage.classList.add('hidden');
-  mapSaveBtn.classList.add('hidden');mapSaveBtn.removeAttribute('href');
-  mapMsg.textContent='در حال دریافت نقشه…';mapMsg.classList.remove('hidden');mapArea.textContent='';
+  mapImage.removeAttribute('src');
+  mapImage.classList.add('hidden');
+  mapSaveBtn.classList.add('hidden');
+  mapSaveBtn.removeAttribute('href');
+  mapMsg.textContent='در حال دریافت نقشه…';
+  mapMsg.classList.remove('hidden');
+  mapArea.textContent='';
 }
+
 async function openParcelMap(plotNumber){
-  const pn=digits(plotNumber);
+  const pn=String(plotNumber==null?'':plotNumber).trim();
   if(!pn){alert('شماره قطعه برای این رکورد موجود نیست.');return}
-  resetMapView();mapTitle.textContent='نقشه زمین — قطعه '+pn;
-  mapPage.classList.remove('hidden');document.body.style.overflow='hidden';
+  resetMapView();
+  mapTitle.textContent='نقشه زمین — قطعه '+pn;
+  mapPage.classList.remove('hidden');
+  document.body.style.overflow='hidden';
+
   try{
-    const idx=await loadParcelMapIndex();
-    const item=idx.find(x=>digits(x.parcel_no)===pn);
-    if(!item || !item.image_url){mapMsg.textContent='نقشه این قطعه ثبت نشده است.';return}
-    if(item.area_m2!=null && item.area_m2!==''){
-      const a=Number(item.area_m2);
-      mapArea.textContent='مساحت: '+(Number.isFinite(a)?new Intl.NumberFormat('fa-IR',{maximumFractionDigits:2}).format(a):item.area_m2)+' مترمربع';
+    const indexUrl=SUPABASE_URL+'/storage/v1/object/public/parcel-maps/production/index/parcel_maps.json?v='+Date.now();
+    const ir=await fetch(indexUrl,{cache:'no-store'});
+    if(!ir.ok){
+      mapMsg.textContent='فهرست نقشه‌ها هنوز روی سرور آماده نشده است.';
+      return;
     }
-    mapImage.onload=()=>{mapMsg.classList.add('hidden');mapImage.classList.remove('hidden')};
-    mapImage.onerror=()=>{mapImage.classList.add('hidden');mapMsg.classList.remove('hidden');mapMsg.textContent='تصویر نقشه قابل دریافت نیست.'};
-    mapImage.src=item.image_url;
-    mapSaveBtn.href=item.image_url;mapSaveBtn.download=pn+'.jpg';mapSaveBtn.classList.remove('hidden');
+    const indexData=await ir.json();
+    const items=Array.isArray(indexData?.items)?indexData.items:[];
+    const data=items.find(x=>String(x?.plot_number??'').trim()===pn);
+
+    if(!data){
+      mapMsg.textContent='نقشه این قطعه ثبت نشده است.';
+      return;
+    }
+
+    if(data.area!=null && data.area!==''){
+      const a=Number(data.area);
+      mapArea.textContent='مساحت: '+(Number.isFinite(a)?new Intl.NumberFormat('fa-IR',{maximumFractionDigits:3}).format(a):data.area)+' مترمربع';
+    }
+
+    const imageUrl=data.image_url ||
+      (SUPABASE_URL+'/storage/v1/object/public/parcel-maps/production/images/'+encodeURIComponent(pn)+'.jpg');
+
+    mapImage.onload=()=>{
+      mapMsg.classList.add('hidden');
+      mapImage.classList.remove('hidden');
+    };
+    mapImage.onerror=()=>{
+      mapImage.classList.add('hidden');
+      mapMsg.classList.remove('hidden');
+      mapMsg.textContent='تصویر نقشه قابل دریافت نیست.';
+    };
+    mapImage.src=imageUrl;
+
+    mapSaveBtn.textContent='ذخیره تصویر';
+    mapSaveBtn.download=pn+'.jpg';
+    mapSaveBtn.href=imageUrl;
+    mapSaveBtn.classList.remove('hidden');
+
     try{
-      const rr=await fetch(item.image_url,{cache:'no-store'});
-      if(rr.ok){lastMapObjectUrl=URL.createObjectURL(await rr.blob());mapSaveBtn.href=lastMapObjectUrl}
+      const r=await fetch(imageUrl,{cache:'no-store'});
+      if(r.ok){
+        const blob=await r.blob();
+        lastMapObjectUrl=URL.createObjectURL(blob);
+        mapSaveBtn.href=lastMapObjectUrl;
+      }
     }catch(_){}
-  }catch(err){console.error(err);mapMsg.textContent='خطا در دریافت فهرست نقشه‌های زمین.'}
+  }catch(err){
+    console.error(err);
+    mapMsg.textContent='خطا در دریافت نقشه زمین.';
+  }
 }
+
 function closeParcelMap(){
-  mapPage.classList.add('hidden');document.body.style.overflow='';resetMapView();
+  mapPage.classList.add('hidden');
+  document.body.style.overflow='';
+  resetMapView();
 }
 
 function render(rows){
