@@ -20,7 +20,17 @@ button,.btn{width:100%;min-height:52px;border:0;border-radius:14px;background:va
 .mapPage{position:fixed;inset:0;background:var(--bg);z-index:20;overflow:auto;padding:16px}.mapCard{width:min(100%,760px);margin:0 auto;background:#fff;border-radius:22px;padding:18px;box-shadow:0 12px 36px rgba(12,55,58,.14)}.mapImageWrap{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#f5f9f9;margin:12px 0}.mapImageWrap img{display:block;width:100%;height:auto}.mapMsg{padding:32px;text-align:center;color:var(--muted);font-weight:700}.utmTable{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px;direction:ltr}.utmTable th,.utmTable td{border:1px solid #dfe7e8;padding:7px;text-align:center}.utmTable th{background:#edf5f5}.mapCanvas{height:420px;border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-top:14px;direction:ltr}.mapBtns{display:grid;grid-template-columns:1fr 1fr;gap:10px}.mapBtns .btn{margin-top:10px}
 @media(max-width:430px){.card{padding:19px;border-radius:20px}h1{font-size:21px}.row{grid-template-columns:1fr}.k{padding-bottom:4px}.v{padding-top:4px}.mapBtns{grid-template-columns:1fr}.mapCanvas{height:360px}}
 </style>
-</head>
+<style>
+.leaflet-control-layers input {
+ width: auto !important; height: auto !important;
+ min-width: 0 !important; min-height: 0 !important;
+ padding: 0 !important; margin: 0 5px !important;
+ display: inline-block !important;
+}
+.leaflet-control-layers label {
+ font-size: 13px !important; margin: 4px !important;
+}
+</style></head>
 <body>
 <main class="wrap">
 <section class="card" id="loginCard">
@@ -75,7 +85,7 @@ const c=centroid(g.filter(p=>p.lat!=null&&p.lng!=null&&p.lat!==''&&p.lng!=='').m
 const imageUrl=String(r.image_url||'').trim();if(imageUrl){const im=$('#mapImage');im.src=imageUrl;im.onload=()=>{$('#mapMsg').classList.add('hidden');im.classList.remove('hidden')};im.onerror=()=>{$('#mapMsg').textContent='فایل تصویر این قطعه در دسترس نیست.'};const sv=$('#saveImageBtn');sv.href=imageUrl;sv.download=String(r.plot_number||'parcel')+'.jpg';sv.classList.remove('hidden');try{const q=await fetch(imageUrl,{cache:'no-store'});if(q.ok){const blob=await q.blob();lastObjectUrl=URL.createObjectURL(blob);sv.href=lastObjectUrl}}catch{}}else $('#mapMsg').textContent='تصویر زمین برای این قطعه ثبت نشده است.';
 const pts=g.map(p=>[Number(p.lat),Number(p.lng)]).filter(p=>Number.isFinite(p[0])&&Number.isFinite(p[1]));if(pts.length>=3&&window.L){const mc=$('#mapCanvas');mc.classList.remove('hidden');leafletMap=L.map(mc,{zoomControl:true});
 const street=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20,attribution:'&copy; OpenStreetMap contributors'});
-const satellite=L.esri.basemapLayer('Imagery',{maxZoom:20});
+const satellite=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxNativeZoom:17,maxZoom:22,attribution:'Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community'});
 satellite.addTo(leafletMap);
 L.control.layers({'تصویر ماهواره‌ای':satellite,'نقشه ساده':street}).addTo(leafletMap);
 const poly=L.polygon(pts,{weight:3,fillOpacity:.18}).addTo(leafletMap);pts.forEach((p,i)=>L.marker(p).bindTooltip('P'+(i+1)).addTo(leafletMap));leafletMap.fitBounds(poly.getBounds(),{padding:[24,24]});setTimeout(()=>leafletMap.invalidateSize(),100);}}
