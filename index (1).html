@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0c5c62">
+<meta http-equiv="Cache-Control" content="no-store">
+<title>استعلام مشخصات قطعه | محمودیه</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<style>
+:root{--bg:#eef4f4;--card:#fff;--ink:#17383b;--muted:#60777a;--main:#0c5c62;--line:#d7e2e3;--ok:#14794e;--bad:#a72c34;--warn:#9a6700}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Tahoma,Arial,sans-serif;background:var(--bg);color:var(--ink)}body{min-height:100vh}
+.wrap{min-height:100vh;display:grid;place-items:center;padding:18px}.card{width:min(100%,620px);background:var(--card);border-radius:24px;padding:24px;box-shadow:0 15px 45px rgba(12,55,58,.13)}
+.head{text-align:center}.mark{width:70px;height:70px;margin:0 auto 12px;border-radius:22px;background:var(--main);display:grid;place-items:center;color:#fff;font-weight:800;font-size:17px}h1{font-size:24px;margin:8px 0}.sub{color:var(--muted);line-height:1.9;margin:0 0 20px}
+label{display:block;font-weight:700;margin:14px 0 7px}input{width:100%;height:52px;border:1px solid var(--line);border-radius:14px;padding:0 14px;font-size:18px;outline:0;background:#fbfdfd}input:focus{border-color:var(--main);box-shadow:0 0 0 3px rgba(12,92,98,.12)}
+button,.btn{width:100%;min-height:52px;border:0;border-radius:14px;background:var(--main);color:#fff;font-size:17px;font-weight:800;margin-top:14px;cursor:pointer;padding:10px 12px;text-decoration:none;display:grid;place-items:center}button:disabled{opacity:.55;cursor:not-allowed}.secondary{background:#e8efef;color:#24484b}.outline{background:#fff;color:var(--main);border:1px solid #acd0d1}.msg{min-height:28px;text-align:center;font-weight:700;margin-top:14px;line-height:1.8}.bad{color:var(--bad)}.ok{color:var(--ok)}.warn{color:var(--warn)}.hidden{display:none!important}
+.resultTop{display:flex;gap:12px;align-items:center;margin-bottom:12px}.check{width:48px;height:48px;flex:0 0 48px;border-radius:50%;display:grid;place-items:center;background:#e4f5ec;color:var(--ok);font-size:28px;font-weight:900}.plot{margin-top:16px;border:1px solid var(--line);border-radius:18px;overflow:hidden}.plotTitle{background:#eaf2f2;padding:13px 15px;font-weight:800;font-size:18px}.row{display:grid;grid-template-columns:42% 58%;border-top:1px solid #edf1f1}.k,.v{padding:11px 13px;line-height:1.7;word-break:break-word}.k{font-weight:700;background:#f8fbfb}.money.positive{color:#b02931;font-weight:800}.money.negative{color:#14794e;font-weight:800}.actions{padding:12px}.foot{font-size:12px;color:#789093;text-align:center;margin-top:18px;line-height:1.8}
+.mapPage{position:fixed;inset:0;background:var(--bg);z-index:20;overflow:auto;padding:16px}.mapCard{width:min(100%,760px);margin:0 auto;background:#fff;border-radius:22px;padding:18px;box-shadow:0 12px 36px rgba(12,55,58,.14)}.mapImageWrap{border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#f5f9f9;margin:12px 0}.mapImageWrap img{display:block;width:100%;height:auto}.mapMsg{padding:32px;text-align:center;color:var(--muted);font-weight:700}.utmTable{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px;direction:ltr}.utmTable th,.utmTable td{border:1px solid #dfe7e8;padding:7px;text-align:center}.utmTable th{background:#edf5f5}.mapCanvas{height:420px;border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-top:14px;direction:ltr}.mapBtns{display:grid;grid-template-columns:1fr 1fr;gap:10px}.mapBtns .btn{margin-top:10px}
+@media(max-width:430px){.card{padding:19px;border-radius:20px}h1{font-size:21px}.row{grid-template-columns:1fr}.k{padding-bottom:4px}.v{padding-top:4px}.mapBtns{grid-template-columns:1fr}.mapCanvas{height:360px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<section class="card" id="loginCard">
+  <div class="head"><div class="mark">محمودیه</div><h1>استعلام مشخصات قطعه</h1><p class="sub">برای ورود، کد ملی، شماره تلفن ثبت‌شده و کد تأیید ۶ رقمی را وارد کنید.</p></div>
+  <form id="verifyForm" autocomplete="off">
+    <label for="national">کد ملی</label><input id="national" inputmode="numeric" maxlength="10" placeholder="۱۰ رقم" required>
+    <label for="mobile">شماره تلفن همراه</label><input id="mobile" inputmode="tel" maxlength="11" placeholder="09xxxxxxxxx" required>
+    <label for="pin">کد تأیید ۶ رقمی</label><input id="pin" inputmode="numeric" maxlength="6" placeholder="۶ رقم" required>
+    <button id="verifyBtn" type="submit">تأیید و نمایش مشخصات</button><div id="msg" class="msg" aria-live="polite"></div>
+  </form>
+  <div class="foot">پس از چند تلاش ناموفق، ورود برای مدت محدود قفل می‌شود. اطلاعات فقط پس از تطبیق هر سه مورد نمایش داده می‌شود.</div>
+</section>
+<section class="card hidden" id="resultCard">
+  <div class="resultTop"><div class="check">✓</div><div><h1 style="margin:0">مشخصات ثبت‌شده</h1><div id="countText" class="sub" style="margin:3px 0 0"></div></div></div>
+  <div id="results"></div><button type="button" class="secondary" id="backBtn">خروج و بازگشت</button>
+</section>
+</main>
+<section class="mapPage hidden" id="mapPage" aria-live="polite">
+  <div class="mapCard">
+    <h1 id="mapTitle" style="margin:0">نمایش نقشه زمین و فایل UTM</h1><div id="mapMeta" class="sub" style="margin-top:6px"></div>
+    <div class="mapImageWrap"><div id="mapMsg" class="mapMsg">در حال آماده‌سازی…</div><img id="mapImage" class="hidden" alt="نقشه زمین"></div>
+    <div id="utmWrap"></div><div id="mapCanvas" class="mapCanvas hidden"></div>
+    <div class="mapBtns"><a id="saveImageBtn" class="btn outline hidden" download>ذخیره تصویر</a><button id="googleBtn" class="btn outline hidden" type="button">باز کردن موقعیت در Google Maps</button></div>
+    <button type="button" class="secondary" id="mapBackBtn">بازگشت به مشخصات</button>
+  </div>
+</section>
+<script>
+'use strict';
+const SUPABASE_URL='https://ajlvhskckcookxqaiqpn.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_IgPmr_7I0y8K60OeRsl8aQ_1Nm9-sp0';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+const $=s=>document.querySelector(s);const form=$('#verifyForm'),national=$('#national'),mobile=$('#mobile'),pin=$('#pin'),btn=$('#verifyBtn'),msg=$('#msg'),login=$('#loginCard'),resultCard=$('#resultCard'),results=$('#results'),countText=$('#countText');
+const wantedPlot=new URLSearchParams(location.search).get('plot')||'';let currentRows=[];let leafletMap=null;let lastObjectUrl='';let googleMapsUrl='';
+function digits(v){return String(v||'').replace(/[۰-۹]/g,d=>'0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)]).replace(/[٠-٩]/g,d=>'0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]).replace(/\D/g,'')}
+function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function setMsg(t,k=''){msg.textContent=t;msg.className='msg '+k}
+function statusText(v){v=String(v??'').trim();return v||'—'}
+function money(v){const n=Number(v);if(!Number.isFinite(n))return esc(v||'0')+' ریال';return new Intl.NumberFormat('fa-IR').format(n)+' ریال'}
+function arr(v){if(Array.isArray(v))return v;if(typeof v==='string'){try{const x=JSON.parse(v);return Array.isArray(x)?x:[]}catch{}}return[]}
+function chooseRows(rows){if(!wantedPlot)return rows;const a=rows.filter(r=>String(r.plot_number||'')===String(wantedPlot));return a.length?a:rows}
+function saveSession(rows){try{sessionStorage.setItem('mahmoudieh_portal_v4137',JSON.stringify({at:Date.now(),rows}))}catch{}}
+function clearSession(){try{sessionStorage.removeItem('mahmoudieh_portal_v4137')}catch{}}
+function restoreSession(){try{const x=JSON.parse(sessionStorage.getItem('mahmoudieh_portal_v4137')||'null');if(x&&Date.now()-Number(x.at||0)<30*60*1000&&Array.isArray(x.rows)&&x.rows.length){render(chooseRows(x.rows));return true}}catch{}return false}
+function render(rows){currentRows=rows;results.innerHTML='';rows.forEach(r=>{const debt=Number(r.debt_amount);const debtClass=Number.isFinite(debt)?(debt>0?'positive':debt<0?'negative':''):'';const fields=[['نام و نام خانوادگی',r.full_name],['کد ملی',r.national_code],['کد پستی ملک',r.postal_code],['شماره تلفن موبایل',r.mobile],['شماره قطعه زمین',r.plot_number],['اسم خیابان محل قطعه زمین',r.street_name],['وضعیت عضویت',statusText(r.membership_status)],['عضویت در تعاونی',statusText(r.cooperative_membership_status)],['میزان بدهی',money(r.debt_amount)],['وضعیت قطعه',statusText(r.plot_status)]];const box=document.createElement('div');box.className='plot';box.innerHTML='<div class="plotTitle">قطعه '+esc(r.plot_number||'—')+'</div>'+fields.map((f,i)=>'<div class="row"><div class="k">'+esc(f[0])+'</div><div class="v '+(i===8?'money '+debtClass:'')+'">'+(i===8?f[1]:esc(f[1]))+'</div></div>').join('')+'<div class="actions"><button type="button" class="mapBtn">نمایش نقشه زمین و فایل UTM</button></div>';box.querySelector('.mapBtn').onclick=()=>openMap(r);results.appendChild(box)});countText.textContent=rows.length>1?rows.length+' قطعه با این مشخصات پیدا شد.':'تطبیق اطلاعات با موفقیت انجام شد.';login.classList.add('hidden');resultCard.classList.remove('hidden');scrollTo({top:0,behavior:'smooth'})}
+function errText(e){const x=String(e||'');if(x.includes('PIN_NOT_SET'))return'برای این مالک هنوز کد ۶ رقمی تعریف نشده است.';if(x.includes('LOCKED'))return'به‌دلیل تلاش‌های ناموفق، ورود موقتاً قفل شده است. ۱۵ دقیقه بعد دوباره تلاش کنید.';if(x.includes('INVALID_CREDENTIALS'))return'کد ملی، شماره تلفن یا کد ۶ رقمی صحیح نیست.';if(x.includes('INVALID_INPUT'))return'اطلاعات واردشده کامل یا معتبر نیست.';return'ارتباط با سرور برقرار نشد یا اطلاعات صحیح نیست.'}
+form.addEventListener('submit',async e=>{e.preventDefault();const nc=digits(national.value),mb=digits(mobile.value),pc=digits(pin.value);if(!/^\d{10}$/.test(nc)){setMsg('کد ملی باید دقیقاً ۱۰ رقم باشد.','bad');return}if(!/^09\d{9}$/.test(mb)){setMsg('شماره تلفن همراه معتبر نیست.','bad');return}if(!/^\d{6}$/.test(pc)){setMsg('کد تأیید باید دقیقاً ۶ رقم باشد.','bad');return}btn.disabled=true;setMsg('در حال بررسی با سرور…');try{const {data,error}=await sb.rpc('verify_plot_identity_pin',{p_national_code:nc,p_mobile:mb,p_pin:pc});if(error)throw error;if(!data||data.ok!==true||!Array.isArray(data.results)||!data.results.length)throw new Error(data?.error||'INVALID_CREDENTIALS');saveSession(data.results);setMsg('');render(chooseRows(data.results))}catch(err){console.error(err);setMsg(errText(err?.message||err),'bad')}finally{btn.disabled=false}});
+function resetMap(){googleMapsUrl='';if(leafletMap){leafletMap.remove();leafletMap=null}if(lastObjectUrl){URL.revokeObjectURL(lastObjectUrl);lastObjectUrl=''}$('#mapCanvas').classList.add('hidden');$('#mapImage').classList.add('hidden');$('#saveImageBtn').classList.add('hidden');$('#googleBtn').classList.add('hidden');$('#utmWrap').innerHTML='';$('#mapMsg').classList.remove('hidden');$('#mapMsg').textContent='در حال آماده‌سازی…'}
+function centroid(points){const valid=points.filter(p=>Array.isArray(p)&&p.length>=2&&Number.isFinite(p[0])&&Number.isFinite(p[1])&&Math.abs(p[0])<=90&&Math.abs(p[1])<=180);if(!valid.length)return null;return valid.reduce((s,p)=>[s[0]+p[0]/valid.length,s[1]+p[1]/valid.length],[0,0])}
+async function openMap(r){resetMap();$('#mapTitle').textContent='نمایش نقشه زمین و فایل UTM — قطعه '+String(r.plot_number||'—');$('#mapMeta').textContent='مساحت: '+String(r.map_area??'—')+' مترمربع | UTM Zone '+String(r.map_zone??39)+'N';$('#mapPage').classList.remove('hidden');document.body.style.overflow='hidden';const u=arr(r.utm_points),g=arr(r.wgs84_points);if(u.length){$('#utmWrap').innerHTML='<div style="font-weight:800;margin-top:12px">مختصات UTM و WGS84</div><div style="overflow:auto"><table class="utmTable"><thead><tr><th>Point</th><th>Easting</th><th>Northing</th><th>Lat</th><th>Lng</th></tr></thead><tbody>'+u.map((p,i)=>'<tr><td>P'+esc(p.point||i+1)+'</td><td>'+esc(p.easting)+'</td><td>'+esc(p.northing)+'</td><td>'+esc(g[i]?.lat??'')+'</td><td>'+esc(g[i]?.lng??'')+'</td></tr>').join('')+'</tbody></table></div>'}else $('#utmWrap').innerHTML='<div class="msg warn">مختصات UTM برای این قطعه ثبت نشده است.</div>';
+const c=centroid(g.filter(p=>p.lat!=null&&p.lng!=null&&p.lat!==''&&p.lng!=='').map(p=>[Number(p.lat),Number(p.lng)]));if(c){googleMapsUrl='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(c[0]+','+c[1]);$('#googleBtn').classList.remove('hidden');}
+const imageUrl=String(r.image_url||'').trim();if(imageUrl){const im=$('#mapImage');im.src=imageUrl;im.onload=()=>{$('#mapMsg').classList.add('hidden');im.classList.remove('hidden')};im.onerror=()=>{$('#mapMsg').textContent='فایل تصویر این قطعه در دسترس نیست.'};const sv=$('#saveImageBtn');sv.href=imageUrl;sv.download=String(r.plot_number||'parcel')+'.jpg';sv.classList.remove('hidden');try{const q=await fetch(imageUrl,{cache:'no-store'});if(q.ok){const blob=await q.blob();lastObjectUrl=URL.createObjectURL(blob);sv.href=lastObjectUrl}}catch{}}else $('#mapMsg').textContent='تصویر زمین برای این قطعه ثبت نشده است.';
+const pts=g.map(p=>[Number(p.lat),Number(p.lng)]).filter(p=>Number.isFinite(p[0])&&Number.isFinite(p[1]));if(pts.length>=3&&window.L){const mc=$('#mapCanvas');mc.classList.remove('hidden');leafletMap=L.map(mc,{zoomControl:true});L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20,attribution:'&copy; OpenStreetMap contributors'}).addTo(leafletMap);const poly=L.polygon(pts,{weight:3,fillOpacity:.18}).addTo(leafletMap);pts.forEach((p,i)=>L.marker(p).bindTooltip('P'+(i+1)).addTo(leafletMap));leafletMap.fitBounds(poly.getBounds(),{padding:[24,24]});setTimeout(()=>leafletMap.invalidateSize(),100);}}
+function closeMap(){$('#mapPage').classList.add('hidden');document.body.style.overflow='';resetMap()}
+$('#mapBackBtn').onclick=closeMap;
+$('#googleBtn').onclick=()=>{if(!googleMapsUrl)return;try{window.location.assign(googleMapsUrl)}catch(_){window.location.href=googleMapsUrl}};$('#backBtn').onclick=()=>{clearSession();currentRows=[];resultCard.classList.add('hidden');login.classList.remove('hidden');form.reset();results.innerHTML='';setMsg('');scrollTo({top:0,behavior:'smooth'})};
+restoreSession();
+</script>
+</body>
+</html>
