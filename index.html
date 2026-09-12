@@ -43,10 +43,11 @@ button,.btn{width:100%;min-height:52px;border:0;border-radius:14px;background:va
     <h1 id="mapTitle" style="margin:0">نمایش نقشه زمین و فایل UTM</h1><div id="mapMeta" class="sub" style="margin-top:6px"></div>
     <div class="mapImageWrap"><div id="mapMsg" class="mapMsg">در حال آماده‌سازی…</div><img id="mapImage" class="hidden" alt="نقشه زمین"></div>
     <div id="utmWrap"></div><div id="mapCanvas" class="mapCanvas hidden"></div>
-    <div class="mapBtns"><a id="saveImageBtn" class="btn outline hidden" download>ذخیره تصویر</a><button id="googleBtn" class="btn outline hidden" type="button">باز کردن موقعیت در Google Maps</button></div>
+    <div class="mapBtns"><a id="saveImageBtn" class="btn outline hidden" download>ذخیره تصویر</a><button id="googleBtn" class="btn outline hidden" type="button">مسیریابی به قطعه در Google Maps</button></div>
     <button type="button" class="secondary" id="mapBackBtn">بازگشت به مشخصات</button>
   </div>
 </section>
+<script src="https://unpkg.com/esri-leaflet@3/dist/esri-leaflet.js"></script>
 <script>
 'use strict';
 const SUPABASE_URL='https://ajlvhskckcookxqaiqpn.supabase.co';
@@ -72,11 +73,65 @@ function centroid(points){const valid=points.filter(p=>Array.isArray(p)&&p.lengt
 async function openMap(r){resetMap();$('#mapTitle').textContent='نمایش نقشه زمین و فایل UTM — قطعه '+String(r.plot_number||'—');$('#mapMeta').textContent='مساحت: '+String(r.map_area??'—')+' مترمربع | UTM Zone '+String(r.map_zone??39)+'N';$('#mapPage').classList.remove('hidden');document.body.style.overflow='hidden';const u=arr(r.utm_points),g=arr(r.wgs84_points);if(u.length){$('#utmWrap').innerHTML='<div style="font-weight:800;margin-top:12px">مختصات UTM و WGS84</div><div style="overflow:auto"><table class="utmTable"><thead><tr><th>Point</th><th>Easting</th><th>Northing</th><th>Lat</th><th>Lng</th></tr></thead><tbody>'+u.map((p,i)=>'<tr><td>P'+esc(p.point||i+1)+'</td><td>'+esc(p.easting)+'</td><td>'+esc(p.northing)+'</td><td>'+esc(g[i]?.lat??'')+'</td><td>'+esc(g[i]?.lng??'')+'</td></tr>').join('')+'</tbody></table></div>'}else $('#utmWrap').innerHTML='<div class="msg warn">مختصات UTM برای این قطعه ثبت نشده است.</div>';
 const c=centroid(g.filter(p=>p.lat!=null&&p.lng!=null&&p.lat!==''&&p.lng!=='').map(p=>[Number(p.lat),Number(p.lng)]));if(c){googleMapsUrl='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(c[0]+','+c[1]);$('#googleBtn').classList.remove('hidden');}
 const imageUrl=String(r.image_url||'').trim();if(imageUrl){const im=$('#mapImage');im.src=imageUrl;im.onload=()=>{$('#mapMsg').classList.add('hidden');im.classList.remove('hidden')};im.onerror=()=>{$('#mapMsg').textContent='فایل تصویر این قطعه در دسترس نیست.'};const sv=$('#saveImageBtn');sv.href=imageUrl;sv.download=String(r.plot_number||'parcel')+'.jpg';sv.classList.remove('hidden');try{const q=await fetch(imageUrl,{cache:'no-store'});if(q.ok){const blob=await q.blob();lastObjectUrl=URL.createObjectURL(blob);sv.href=lastObjectUrl}}catch{}}else $('#mapMsg').textContent='تصویر زمین برای این قطعه ثبت نشده است.';
-const pts=g.map(p=>[Number(p.lat),Number(p.lng)]).filter(p=>Number.isFinite(p[0])&&Number.isFinite(p[1]));if(pts.length>=3&&window.L){const mc=$('#mapCanvas');mc.classList.remove('hidden');leafletMap=L.map(mc,{zoomControl:true});L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20,attribution:'&copy; OpenStreetMap contributors'}).addTo(leafletMap);const poly=L.polygon(pts,{weight:3,fillOpacity:.18}).addTo(leafletMap);pts.forEach((p,i)=>L.marker(p).bindTooltip('P'+(i+1)).addTo(leafletMap));leafletMap.fitBounds(poly.getBounds(),{padding:[24,24]});setTimeout(()=>leafletMap.invalidateSize(),100);}}
+const pts=g.map(p=>[Number(p.lat),Number(p.lng)]).filter(p=>Number.isFinite(p[0])&&Number.isFinite(p[1]));if(pts.length>=3&&window.L){const mc=$('#mapCanvas');mc.classList.remove('hidden');leafletMap=L.map(mc,{zoomControl:true});
+const street=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:20,attribution:'&copy; OpenStreetMap contributors'});
+const satellite=L.esri.basemapLayer('Imagery',{maxZoom:20});
+satellite.addTo(leafletMap);
+L.control.layers({'تصویر ماهواره‌ای':satellite,'نقشه ساده':street}).addTo(leafletMap);
+const poly=L.polygon(pts,{weight:3,fillOpacity:.18}).addTo(leafletMap);pts.forEach((p,i)=>L.marker(p).bindTooltip('P'+(i+1)).addTo(leafletMap));leafletMap.fitBounds(poly.getBounds(),{padding:[24,24]});setTimeout(()=>leafletMap.invalidateSize(),100);}}
 function closeMap(){$('#mapPage').classList.add('hidden');document.body.style.overflow='';resetMap()}
 $('#mapBackBtn').onclick=closeMap;
 $('#googleBtn').onclick=()=>{if(!googleMapsUrl)return;try{window.location.assign(googleMapsUrl)}catch(_){window.location.href=googleMapsUrl}};$('#backBtn').onclick=()=>{clearSession();currentRows=[];resultCard.classList.add('hidden');login.classList.remove('hidden');form.reset();results.innerHTML='';setMsg('');scrollTo({top:0,behavior:'smooth'})};
 restoreSession();
 </script>
+
+<script>
+(()=>{
+let selectedParcel=null;
+const originalOpenMap=openMap;
+openMap=function(r){selectedParcel=r;return originalOpenMap(r)};
+const button=document.createElement('button');
+button.type='button';
+button.textContent='دانلود محدوده برای Google Earth';
+document.getElementById('googleBtn').insertAdjacentElement('beforebegin',button);
+button.onclick=()=>{
+ try{
+  const r=selectedParcel;
+  if(!r)throw new Error('ابتدا نقشه قطعه را باز کنید.');
+  const raw=arr(r.wgs84_points);
+  if(raw.some(p=>p.lat==null||p.lng==null||p.lat===''||p.lng===''))
+   throw new Error('مختصات ناقص است.');
+  const pts=raw.map(p=>[Number(p.lng),Number(p.lat)]);
+  if(pts.length<3||pts.some(p=>!Number.isFinite(p[0])||!Number.isFinite(p[1])||Math.abs(p[0])>180||Math.abs(p[1])>90))
+   throw new Error('مختصات معتبر کافی نیست.');
+  if(new Set(pts.map(p=>p.join(','))).size<3)
+   throw new Error('حداقل سه گوشه متفاوت لازم است.');
+  const first=pts[0],last=pts[pts.length-1];
+  if(first[0]!==last[0]||first[1]!==last[1])pts.push([...first]);
+  const coordinates=pts.map(p=>p.join(',')+',0').join(' ');
+  const name=esc('قطعه '+String(r.plot_number||''));
+  const kml='<?xml version="1.0" encoding="UTF-8"?>'
+   +'<kml xmlns="http://www.opengis.net/kml/2.2"><Document>'
+   +'<Placemark><name>'+name+'</name>'
+   +'<Style><LineStyle><color>ff0000ff</color><width>3</width></LineStyle>'
+   +'<PolyStyle><color>330000ff</color></PolyStyle></Style>'
+   +'<Polygon><tessellate>1</tessellate><altitudeMode>clampToGround</altitudeMode>'
+   +'<outerBoundaryIs><LinearRing><coordinates>'+coordinates
+   +'</coordinates></LinearRing></outerBoundaryIs></Polygon>'
+   +'</Placemark></Document></kml>';
+  const url=URL.createObjectURL(new Blob([kml],{type:'application/vnd.google-earth.kml+xml'}));
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='parcel-'+String(r.plot_number||'map').replace(/[^0-9A-Za-z_-]/g,'_')+'.kml';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+ }catch(e){
+  const msg=document.getElementById('mapMsg');
+  msg.textContent=e.message;msg.classList.remove('hidden');
+ }
+};
+})();
+</script>
+
 </body>
 </html>
